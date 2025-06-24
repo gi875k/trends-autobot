@@ -1,0 +1,33 @@
+name: Google Trends Scraper
+
+on:
+  schedule:
+    # 매시간 5분에 실행 (UTC 기준)
+    - cron: '1 * * * *'
+  # 수동 실행도 가능하도록 workflow_dispatch 추가
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 1. Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: 2. Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: 3. Install Dependencies
+      run: |
+        pip install -r requirements.txt
+        sudo apt-get update
+        sudo apt-get install -y google-chrome-stable
+
+    - name: 4. Decode and Create Credentials File
+      run: echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
+
+    - name: 5. Run Python Script
+      run: python trends_to_sheets.py

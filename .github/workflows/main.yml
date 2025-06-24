@@ -26,8 +26,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y google-chrome-stable
 
-    - name: 4. Decode and Create Credentials File
-      run: echo "${{ secrets.GOOGLE_CREDENTIALS }}" > credentials.json
+    - name: 4. Decode and Create Credentials File      
+      run: echo "${{ secrets.GOOGLE_CREDENTIALS }}" | base64 --decode > credentials.json
 
     - name: 5. Run Python Script
       run: python trends_to_sheets.py

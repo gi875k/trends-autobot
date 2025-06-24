@@ -1,15 +1,17 @@
 import time
 import pandas as pd
 import gspread
+import pytz
 from oauth2client.service_account import ServiceAccountCredentials
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
+from datetime import datetime
 
 # --- Selenium 스크래핑 함수 (제공해주신 코드와 동일) ---
 def scrape_with_selenium():
-    """Selenium을 사용하여 Google Trends의 실시간 트렌드를 스크래핑합니다."""
+    """Selenium을 사용하여 Google Trends의 실시간 검색어를 스크래핑합니다."""
     url = "https://trends.google.com/trending?geo=KR&hours=4"
     options = webdriver.ChromeOptions()
     options.add_argument('headless')
@@ -28,11 +30,11 @@ def scrape_with_selenium():
         soup = BeautifulSoup(html_source, 'lxml')
         table_body = soup.find('tbody', jsname='cC57zf')
         if not table_body:
-            print("❌ 트렌드 테이블을 찾을 수 없습니다. (tbody 태그 없음)")
+            print("❌ 검색어 테이블을 찾을 수 없습니다. (tbody 태그 없음)")
             return None
         rows = table_body.find_all('tr')
         if len(rows) == 0:
-            print("❌ 트렌드 데이터를 찾을 수 없습니다. (tr 태그 없음)")
+            print("❌ 검색어 데이터를 찾을 수 없습니다. (tr 태그 없음)")
             return None
         keywords = [row.find('div', class_='mZ3RIc').get_text(strip=True) for row in rows if row.find('div', class_='mZ3RIc')]
         print(f"✅ Selenium 스크래핑 성공! ({len(keywords)}개 키워드 발견)")
@@ -43,34 +45,47 @@ def scrape_with_selenium():
             driver.quit()
         return None
 
-# --- [추가] Google Sheet 업데이트 함수 ---
+# --- 기존 update_google_sheet 함수를 아래 코드로 전체 교체 ---
 def update_google_sheet(data_df):
-    """스크래핑한 데이터를 Google Sheet에 업데이트합니다."""
+    """스크래핑한 데이터를 기준 시간과 함께 Google Sheet에 업데이트합니다."""
     try:
         print("🔄 Google Sheet에 연결을 시도합니다...")
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
         client = gspread.authorize(creds)
 
-        # 시트 열기 (따옴표 안에는 실제 Google Sheet 파일명을 입력)
         sheet = client.open("블로그 실시간 검색어").sheet1
         print(f"   - '{sheet.title}' 시트에 연결 성공!")
 
-        # 시트 내용 비우기 및 데이터 업데이트
+        # 시트 내용 전체 삭제
         sheet.clear()
+
+        # --- 시간 정보 추가 로직 ---
+        # 1. 한국 시간대 설정
+        kst = pytz.timezone('Asia/Seoul')
+        # 2. 현재 한국 시간 가져오기
+        now_kst = datetime.now(kst)
+        # 3. 원하는 형식으로 텍스트 만들기 (예: (06월 24일 14시))
+        timestamp_text = now_kst.strftime('(%m월 %d일 %H시)')
         
+        # 4. A1 셀에 기준 시간 텍스트 저장
+        sheet.update_acell('A1', timestamp_text)
+        print(f"✅ 기준 시간 '{timestamp_text}'을(를) A1셀에 저장했습니다.")
+        # --- 로직 끝 ---
+
+        # B1 셀부터 키워드 데이터 저장
         if not data_df.empty:
-            sheet.update([data_df.columns.values.tolist()] + data_df.values.tolist())
-            print("✅ Google Sheet가 성공적으로 업데이트되었습니다.")
+            sheet.update('B1', [data_df.columns.values.tolist()] + data_df.values.tolist())
+            print("✅ 키워드 목록을 B1셀부터 저장했습니다.")
         else:
             print("⚠️ 업데이트할 데이터가 없습니다.")
+
     except FileNotFoundError:
-        print("❌ 'credentials.json' 파일을 찾을 수 없습니다. 파일이 스크립트와 같은 폴더에 있는지 확인해주세요.")
+        print("❌ 'credentials.json' 파일을 찾을 수 없습니다.")
     except gspread.exceptions.SpreadsheetNotFound:
-        print("❌ '블로그 실시간 검색어'라는 이름의 Google Sheet를 찾을 수 없습니다. 시트 이름을 확인하고, 서비스 계정에 편집자로 공유했는지 확인해주세요.")
+        print("❌ '블로그 실시간 검색어' 시트를 찾을 수 없습니다.")
     except Exception as e:
         print(f"❌ Google Sheet 작업 중 오류 발생: {e}")
-
 
 # --- 메인 실행 부분 ---
 if __name__ == "__main__":

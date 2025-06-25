@@ -1,8 +1,10 @@
 pandas
 gspread
 oauth2client
+pytz
 selenium
 webdriver-manager
 beautifulsoup4
 lxml
-pytz
+requests
+html5lib

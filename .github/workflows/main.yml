@@ -2,7 +2,7 @@ name: Google Trends Scraper
 
 on:
   schedule:
-    # 매시간 1분에 실행 (UTC 기준)
+    # 8분마다 실행 (UTC 기준)
     - cron: '*/8 * * * *'
   # 수동 실행도 가능하도록 workflow_dispatch 추가
   workflow_dispatch:

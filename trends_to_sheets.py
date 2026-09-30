@@ -158,7 +158,10 @@ def update_google_sheet(google_data, zum_data, nate_data):
     """3개의 트렌드 데이터를 취합하여 Google Sheet에 업데이트합니다."""
     try:
         print("\n🔄 Google Sheet에 연결을 시도합니다...")
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        scope = [
+            'https://www.googleapis.com/auth/spreadsheets',
+            'https://www.googleapis.com/auth/drive'
+        ]
         creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
         client = gspread.authorize(creds)
         sheet = client.open("블로그 실시간 검색어").sheet1

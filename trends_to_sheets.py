@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import requests
 import json
+import sys
 
 # --- 1. Google Trends 스크래핑 함수 (변경 없음) ---
 def scrape_google_trends():
@@ -183,7 +184,8 @@ def update_google_sheet(google_data, zum_data, nate_data):
 
         if not combined_df.empty:
             combined_df.fillna('', inplace=True)
-            sheet.update('A2', [combined_df.columns.values.tolist()] + combined_df.values.tolist(), value_input_option='USER_ENTERED')
+            data_to_update = [combined_df.columns.values.tolist()] + combined_df.values.tolist()
+            sheet.update(range_name='A2', values=data_to_update, value_input_option='USER_ENTERED')
             print("✅ Google, ZUM, NATE 키워드 목록을 A2셀부터 저장했습니다.")
         else:
             print("⚠️ 업데이트할 데이터가 없습니다.")
@@ -194,6 +196,8 @@ def update_google_sheet(google_data, zum_data, nate_data):
         print("❌ Google Sheet에서 '블로그 실시간 검색어' 스프레드시트를 찾을 수 없습니다.")
     except Exception as e:
         print(f"❌ Google Sheet 작업 중 오류 발생: {e}")
+        # GitHub Actions에 실패 상태(Exit Code 1)를 명시적으로 전달
+        sys.exit(1)
 
 # --- 메인 실행 부분 (변경 없음) ---
 if __name__ == "__main__":
